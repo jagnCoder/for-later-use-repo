@@ -1,0 +1,4 @@
+PreparedStatement pstmt = conn.prepareStatement("INSERT INTO users (name, age) VALUES (?, ?)");
+pstmt.setString(1, "Jagan");
+pstmt.setInt(2, 25);
+pstmt.executeUpdate();
