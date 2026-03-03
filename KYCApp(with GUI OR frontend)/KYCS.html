@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Application</title>
+    <!-- Use Tailwind CSS for a modern, responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Simple KYC Application</h1>
+        <p class="text-center text-gray-500 mb-8">This app is connected to your Java API server. Data is stored in your MySQL database.</p>
+
+        <!-- Form for Data Entry -->
+        <div id="add-user-section" class="bg-blue-50 p-6 rounded-lg mb-6">
+            <h2 class="text-2xl font-semibold text-blue-800 mb-4">Add New User & Documents</h2>
+            <form id="kycForm" class="space-y-4">
+                <div>
+                    <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="dob" class="block text-sm font-medium text-gray-700">Date of Birth (YYYY-MM-DD)</label>
+                    <input type="date" id="dob" name="dob" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
+                    <input type="text" id="address" name="address" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Documents</h3>
+                    <div class="flex space-x-4">
+                        <div class="w-1/2">
+                            <label for="docType1" class="block text-sm font-medium text-gray-700">Document Type</label>
+                            <input type="text" id="docType1" name="docType1" placeholder="e.g., Aadhaar Card" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="docNumber1" class="block text-sm font-medium text-gray-700">Document Number</label>
+                            <input type="text" id="docNumber1" name="docNumber1" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Add User
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Data Display Section -->
+        <div class="bg-gray-50 p-6 rounded-lg">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Stored User Data</h2>
+            <div id="dataDisplay" class="space-y-4">
+                <!-- User data will be rendered here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modals -->
+    <div id="dialog-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-lg font-semibold mb-2"></h3>
+            <p id="modal-message" class="text-gray-700 mb-4"></p>
+            <input type="text" id="modal-input" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm hidden">
+            <div class="flex justify-end space-x-2">
+                <button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancel</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/api/users';
+        const form = document.getElementById('kycForm');
+        const dataDisplay = document.getElementById('dataDisplay');
+        const dialogModal = document.getElementById('dialog-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalInput = document.getElementById('modal-input');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        // Custom modal implementation
+        function showModal(title, message, isPrompt = false, defaultValue = '') {
+            return new Promise(resolve => {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modalInput.value = defaultValue;
+                
+                if (isPrompt) {
+                    modalInput.style.display = 'block';
+                } else {
+                    modalInput.style.display = 'none';
+                }
+                
+                modalConfirmBtn.onclick = () => {
+                    dialogModal.style.display = 'none';
+                    resolve(isPrompt ? modalInput.value : true);
+                };
+                
+                modalCancelBtn.onclick = () => {
+                    dialogModal.style.display = 'none';
+                    resolve(isPrompt ? null : false);
+                };
+                
+                dialogModal.style.display = 'flex';
+            });
+        }
+
+        // Function to render all data to the UI
+        async function renderData() {
+            dataDisplay.innerHTML = '<p class="text-gray-500 text-center">Loading data...</p>';
+            try {
+                // This GET request is a simplified example. A full implementation would retrieve all data.
+                const response = await fetch(API_URL);
+                const text = await response.text();
+                if (response.ok) {
+                    // For this demo, we'll just show a success message since the server doesn't return data.
+                    dataDisplay.innerHTML = `<p class="text-green-500 text-center">API Response: ${text}</p><p class="text-gray-500 text-center">Check your Java console for the full list.</p>`;
+                } else {
+                    dataDisplay.innerHTML = `<p class="text-red-500 text-center">Failed to load data from API. Is the server running? <br>Server response: ${text}</p>`;
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                dataDisplay.innerHTML = '<p class="text-red-500 text-center">Connection error. Please ensure the Java server is running.</p>';
+            }
+        }
+
+        // Handle form submission to add a new user
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new URLSearchParams(new FormData(e.target)).toString();
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                const text = await response.text();
+                if (response.ok) {
+                    await showModal('Success', text);
+                    form.reset(); // Clear the form
+                    renderData();
+                } else {
+                    await showModal('Error', `Error: ${text}`);
+                }
+            } catch (error) {
+                console.error('Error adding user:', error);
+                await showModal('Error', 'Connection error. Could not connect to the API.');
+            }
+        });
+
+        // Function to update a user's data
+        window.editUser = async function(userId) {
+            const newAddress = await showModal('Edit Address', `Enter new address for user ID ${userId}:`, true, '');
+            if (newAddress !== null && newAddress.trim() !== '') {
+                const formData = new URLSearchParams();
+                formData.append('address', newAddress);
+                try {
+                    const response = await fetch(`${API_URL}/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData.toString()
+                    });
+                    const text = await response.text();
+                    if (response.ok) {
+                        await showModal('Success', text);
+                        renderData();
+                    } else {
+                        await showModal('Error', `Error: ${text}`);
+                    }
+                } catch (error) {
+                    console.error('Error updating user:', error);
+                    await showModal('Error', 'Connection error. Could not connect to the API.');
+                }
+            }
+        };
+
+        // Function to delete a user
+        window.deleteUser = async function(userId) {
+            const isConfirmed = await showModal('Delete User', `Are you sure you want to delete user ID ${userId}?`);
+            if (isConfirmed) {
+                try {
+                    const response = await fetch(`${API_URL}/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    const text = await response.text();
+                    if (response.ok) {
+                        await showModal('Success', text);
+                        renderData();
+                    } else {
+                        await showModal('Error', `Error: ${text}`);
+                    }
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    await showModal('Error', 'Connection error. Could not connect to the API.');
+                }
+            }
+        };
+
+        // Initial render of data
+        renderData();
+
+    </script>
+
+</body>
+</html>
